@@ -1,0 +1,43 @@
+name: Deploy static content to Pages
+
+on:
+  # Menjalankan workflow setiap ada push ke branch main (atau ganti dengan branch Anda)
+  push:
+    branches: ["main"]
+
+  # Memungkinkan Anda menjalankan workflow ini secara manual dari tab Actions di GitHub
+  workflow_dispatch:
+
+# Mengatur hak akses token untuk GitHub Pages
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Membatasi deployment paralel agar tidak bentrok
+concurrency:
+  group: "pages"
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          # Karena file HTML, CSS, dan JS Anda berada di root directory
+          path: '.'
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
