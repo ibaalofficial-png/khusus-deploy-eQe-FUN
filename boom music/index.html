@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>iBaal Premium - Aurora Edition</title>
+
+<link rel="stylesheet" href="style.css">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#030712">
+<!-- Meta tag agar status bar iOS transparan & menyatu -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
+<!-- CSS KUSTOM: ANIMASI ARTWORK & TEMA GLASS UNTUK DROPDOWN & IMPORT -->
+<style>
+  .media-row {
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+    gap: 12px !important;
+    width: 100% !important;
+    margin-top: 10px !important;
+  }
+  .media-row button {
+    display: inline-block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    padding: 10px 20px !important;
+    background: rgba(255, 255, 255, 0.1) !important;
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+    color: #fff !important;
+    border-radius: 8px !important;
+    font-weight: bold !important;
+    font-size: 12px !important;
+    cursor: pointer !important;
+    z-index: 99 !important;
+  }
+  #playBtn {
+    background: #00f3ff !important;
+    color: #030712 !important;
+    border: none !important;
+  }
+  /* Animasi Artwork Berkedip/Berputar Cepat */
+  .glitch-art {
+    animation: borderGlowFast 1.2s linear infinite !important;
+  }
+  @keyframes borderGlowFast {
+    0% { filter: hue-rotate(0deg) brightness(1); }
+    50% { filter: hue-rotate(180deg) brightness(1.2); }
+    100% { filter: hue-rotate(360deg) brightness(1); }
+  }
+
+  /* --- STYLING TEMA GLASS UNTUK PLAYLIST, IMPORT, & PILIH LUA --- */
+  #playlistDropdown, .custom-file-btn, #customEqSelect {
+    background: rgba(255, 255, 255, 0.08) !important;
+    backdrop-filter: blur(12px) !important;
+    -webkit-backdrop-filter: blur(12px) !important;
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+    color: #fff !important;
+    border-radius: 8px !important;
+    padding: 6px 12px !important;
+    font-size: 11px !important;
+    font-weight: 500;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.3) !important;
+    outline: none !important;
+  }
+  #playlistDropdown option, #customEqSelect option {
+    background: #0b0f19 !important;
+    color: #fff !important;
+  }
+  .custom-file-btn {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+</style>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jsmediatags/3.9.5/jsmediatags.min.js"></script>
+</head>
+
+<body>
+
+<div class="background">
+  <div class="blob blob1"></div>
+  <div class="blob blob2"></div>
+</div>
+
+<!-- ================= MODAL LINK EKSTERNAL (GITHUB / ARCHIVE / CATBOX) ================= -->
+<div id="linkModal" class="modal-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); z-index:999; justify-content:center; align-items:center;">
+  <div class="modal-content glass" style="width:90%; max-width:320px; padding:20px; border-radius:12px;">
+    <h3 style="font-size:12px; margin-bottom:6px; color:var(--neon-cyan, #00f3ff);">🌐 Tambah Link MP3 (GitHub / Archive / Catbox)</h3>
+    <input type="text" id="arcTitle" placeholder="Judul Lagu..." style="width:100%; height:32px; padding:0 8px; background:#000; border:1px solid var(--glass-border); border-radius:8px; color:#fff; font-size:11px; margin-bottom:8px; outline:none;">
+    <input type="text" id="arcUrl" placeholder="https://... (Paste Direct Link Disini)" style="width:100%; height:32px; padding:0 8px; background:#000; border:1px solid var(--glass-border); border-radius:8px; color:#fff; font-size:11px; margin-bottom:12px; outline:none;">
+    <div style="display:flex; gap:6px;">
+      <button id="closeLinkModal" style="flex:1; height:32px; background:#0a0a0a; border:1px solid var(--glass-border); color:#fff; border-radius:8px; font-size:11px; cursor:pointer;">Batal</button>
+      <button id="saveLinkSong" style="flex:1; height:32px; background:var(--neon-cyan, #00f3ff); border:none; color:#000; border-radius:8px; font-size:11px; font-weight:bold; cursor:pointer;">Simpan</button>
+    </div>
+  </div>
+</div>
+
+<main class="app">
+  <header class="header glass">
+    <div class="marquee-container">
+      <h1 class="marquee-text">🎵 iBaal Premium <span class="meugom-glow">@meugom</span></h1>
+    </div>
+    <button id="menu">☰</button>
+  </header>
+
+  <!-- ================= PLAYER ================= -->
+  <section class="player glass">
+    <div class="artwork-container-wrapper">
+      <label for="customArtFileInput" class="album glitch-art" id="albumContainer" title="Ketuk untuk ganti Artwork" style="cursor:pointer; display:block;">
+        <img id="cover" src="" alt="Cover">
+      </label>
+    </div>
+    <input type="file" id="customArtFileInput" style="display:none;" accept="image/*">
+
+    <div class="info-song">
+      <h2 id="title">No Song</h2>
+      <p id="artist">
+        <span class="bounce-letter">"</span><span class="bounce-letter">i</span><span class="bounce-letter">&nbsp;</span><span class="bounce-letter">B</span><span class="bounce-letter">a</span><span class="bounce-letter">a</span><span class="bounce-letter">L</span><span class="bounce-letter">&nbsp;</span><span class="bounce-letter">&nbsp;</span><span class="bounce-letter">e</span><span class="bounce-letter">&nbsp;</span><span class="bounce-letter">Q</span><span class="bounce-letter">e</span><span class="bounce-letter">"</span>
+      </p>
+    </div>
+
+    <div class="progress">
+      <span id="current">0:00</span>
+      <input type="range" id="progress" value="0" min="0" max="100">
+      <span id="duration">0:00</span>
+    </div>
+
+    <!-- ================= PLAYLIST BAR ================= -->
+    <div class="playlist-bar">
+      <select id="playlistDropdown">
+        <option value="Mix / Campuran">🔒 Mix / Campuran</option>
+        <option value="VIP">👑 VIP</option>
+        <option value="Dangdut">🔥 Dangdut</option>
+        <option value="DJ Indonesia">🎧 DJ Indonesia</option>
+        <option value="Hiphop">🎤 Hiphop</option>
+        <option value="Lagu Jawa">🪕 Lagu Jawa</option>
+      </select>
+      <button id="addPlaylistBtn" class="action-chip" style="display:none;">+ Playlist</button>
+      <button id="openLinkModal" class="action-chip">+ Link</button>
+      <button id="backupBtn" class="action-chip" style="display:none; border-color:#ffcc00; color:#ffcc00;">💾 Backup</button>
+      <input type="file" id="restoreInput" style="display:none;" accept=".json">
+      <label for="restoreInput" id="restoreLabel" class="action-chip" style="display:none; border-color:#00ff66; color:#00ff66; cursor:pointer; align-items:center; justify-content:center;">📂 Restore</label>
+      <label for="localFileInput" class="custom-file-btn" style="cursor:pointer;">📁 Import</label>
+      <input type="file" id="localFileInput" style="display:none;" multiple accept="audio/*,.mp3,.m4a,.wav,.aac,.ogg,.flac">
+    </div>
+
+    <!-- ================= PLAYLIST ================= -->
+    <div class="playlist-box" id="playlistBox">
+      <div id="playlistList" style="text-align:center; padding:10px; font-size:9px; opacity:.7;">Memuat data...</div>
+    </div>
+
+    <!-- ================= CONTROLS ================= -->
+    <div class="controls-wrapper">
+      <div class="media-row">
+        <button id="prevBtn">Prev</button>
+        <button id="playBtn">Play</button>
+        <button id="nextBtn">Next</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= VISUALIZER ================= -->
+  <section class="visual glass">
+    <canvas id="visualizer"></canvas>
+  </section>
+
+  <!-- ================= EQUALIZER ================= -->
+  <section class="equalizer glass">
+    <div class="preset">
+      <button data-preset="flat">Flat</button>
+      <button data-preset="bass">Bass</button>
+      <button data-preset="vocal">Vocal</button>
+      <button data-preset="rock">Rock</button>
+      <button data-preset="edm">EDM</button>
+    </div>
+    <div class="custom-eq-dropdown">
+      <select id="customEqSelect">
+        <option value="" disabled selected>🎛️ Pilih Preset .lua</option>
+        <option value="airpods_edit">Airpods Edit</option>
+        <option value="airpods_edit2">Airpods Edit 2</option>
+        <option value="bass_enak">Bass Enak</option>
+        <option value="bass2">Bass 2</option>
+        <option value="basssss">Basssss</option>
+        <option value="current_bands">Current Bands</option>
+        <option value="pubg_bass">PUBG Bass</option>
+        <option value="pubg_bass2">PUBG Bass 2</option>
+        <option value="pubg_bassss">PUBG Bassss</option>
+        <option value="pubg">PUBG Original</option>
+      </select>
+    </div>
+  </section>
+</main>
+
+<!-- ATRIBUT crossorigin="anonymous" WAJIB ADA AGAR EQUALIZER & VISUALIZER BERJALAN LANCAR -->
+<audio id="audio" crossorigin="anonymous" playsinline webkit-playsinline preload="auto"></audio>
+
+<script src="js/equalizer.js"></script>
+<script src="js/visualizer.js"></script>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  const audio = document.getElementById("audio");
+  const playBtn = document.getElementById("playBtn");
+  const progressInput = document.getElementById("progress");
+  const currentTimeSpan = document.getElementById("current");
+  const durationSpan = document.getElementById("duration");
+  const playlistDropdown = document.getElementById("playlistDropdown");
+  const linkModal = document.getElementById("linkModal");
+  const openLinkModal = document.getElementById("openLinkModal");
+  const closeLinkModal = document.getElementById("closeLinkModal");
+  const saveLinkSong = document.getElementById("saveLinkSong");
+  const arcTitleInput = document.getElementById("arcTitle");
+  const arcUrlInput = document.getElementById("arcUrl");
+  const localFileInput = document.getElementById("localFileInput");
+  const coverImg = document.getElementById("cover");
+  const customEqSelect = document.getElementById("customEqSelect");
+  const presetBtns = document.querySelectorAll(".preset button");
+  const customArtFileInput = document.getElementById("customArtFileInput");
+  const backupBtn = document.getElementById("backupBtn");
+  const restoreLabel = document.getElementById("restoreLabel");
+  const restoreInput = document.getElementById("restoreInput");
+
+  if ('audioSession' in navigator) {
+    navigator.audioSession.type = 'playback';
+  }
+
+  function createDefaultCoverDataURL() {
+    const canvas = document.createElement("canvas");
+    canvas.width = 512; canvas.height = 512;
+    const ctx = canvas.getContext("2d");
+    ctx.fillStyle = "#000000"; ctx.fillRect(0, 0, 512, 512);
+    ctx.strokeStyle = "#00f3ff"; ctx.lineWidth = 32; ctx.lineCap = "round"; ctx.lineJoin = "round";
+    ctx.beginPath(); ctx.arc(256, 270, 150, Math.PI, 0, false); ctx.stroke();
+    ctx.fillStyle = "#ff2a85";
+    ctx.beginPath(); ctx.roundRect(76, 240, 65, 140, 25); ctx.roundRect(371, 240, 65, 140, 25); ctx.fill();
+    ctx.fillStyle = "#333333";
+    ctx.beginPath(); ctx.roundRect(90, 260, 37, 110, 15); ctx.roundRect(385, 260, 37, 110, 15); ctx.fill();
+    ctx.strokeStyle = "#00f3ff"; ctx.lineWidth = 20;
+    ctx.beginPath(); ctx.moveTo(180, 270); ctx.lineTo(215, 270); ctx.lineTo(235, 180); ctx.lineTo(260, 360); ctx.lineTo(285, 220); ctx.lineTo(310, 270); ctx.lineTo(332, 270); ctx.stroke();
+    return canvas.toDataURL("image/png");
+  }
+
+  const defaultHeadphoneCover = createDefaultCoverDataURL();
+  coverImg.src = defaultHeadphoneCover;
+
+  const STORAGE_KEY = "boom_player_permanent_data";
+  let savedPlaylists = localStorage.getItem(STORAGE_KEY);
+  let playlists = savedPlaylists ? JSON.parse(savedPlaylists) : {
+    "Mix / Campuran": [], "VIP_1": [], "VIP_2": [], "Dangdut": [], "DJ Indonesia": [], "Hiphop": [], "Lagu Jawa": []
+  };
+
+  playlistDropdown.value = "Mix / Campuran";
+  let currentPlaylistKey = playlistDropdown.value;
+  let currentTrackIndex = 0;
+  let isChangingTrack = false;
+
+  function saveToStorage() {
+    const cleanPlaylists = {};
+    Object.keys(playlists).forEach(key => {
+      cleanPlaylists[key] = playlists[key].map(song => ({
+        id: song.id, title: song.title, artist: song.artist, cover: song.cover, url: song.url
+      })).filter(song => !song.url.startsWith("blob:"));
+    });
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(cleanPlaylists));
+  }
+
+  function updateCloudButtonsVisibility() {
+    if (currentPlaylistKey.startsWith("VIP_")) {
+      backupBtn.style.display = "inline-block";
+      restoreLabel.style.display = "inline-flex";
+    } else {
+      backupBtn.style.display = "none";
+      restoreLabel.style.display = "none";
+    }
+  }
+
+  async function triggerAudioContext() {
+    if (typeof Equalizer !== "undefined") {
+      if (typeof Equalizer.init === "function") {
+        await Equalizer.init();
+      }
+      if (Equalizer.context && Equalizer.context.state === "suspended") {
+        await Equalizer.context.resume();
+      }
+    }
+  }
+
+  presetBtns.forEach(btn => {
+    btn.addEventListener("click", async function() {
+      presetBtns.forEach(b => b.classList.remove("active"));
+      this.classList.add("active");
+      if (customEqSelect) customEqSelect.selectedIndex = 0;
+      
+      await triggerAudioContext();
+      const presetName = this.getAttribute("data-preset");
+      if (typeof Equalizer !== "undefined" && typeof Equalizer.setPreset === "function") {
+        Equalizer.setPreset(presetName);
+      }
+    });
+  });
+
+  if (customEqSelect) {
+    customEqSelect.addEventListener("change", async function() {
+      presetBtns.forEach(b => b.classList.remove("active"));
+      await triggerAudioContext();
+      const luaPreset = this.value;
+      if (typeof Equalizer !== "undefined") {
+        if (typeof Equalizer.setCustomPreset === "function") {
+          Equalizer.setCustomPreset(luaPreset);
+        } else if (typeof Equalizer.setPreset === "function") {
+          Equalizer.setPreset(luaPreset);
+        }
+      }
+    });
+  }
+
+  const forceResumeAudioContext = async () => {
+    if (typeof Equalizer !== "undefined" && Equalizer.context) {
+      if (Equalizer.context.state === "suspended" && !audio.paused) {
+        try {
+          await Equalizer.context.resume();
+        } catch (e) {
+          console.log("Gagal memulihkan AudioContext:", e);
+        }
+      }
+    }
+    if (!audio.paused && audio.ended) {
+      audio.play().catch(() => {});
+    }
+  };
+  document.addEventListener("visibilitychange", forceResumeAudioContext);
+  window.addEventListener("pagehide", forceResumeAudioContext);
+  window.addEventListener("blur", forceResumeAudioContext);
+
+  playlistDropdown.addEventListener("change", e => {
+    const targetKey = e.target.value;
+    
+    if (targetKey === "VIP") {
+      const password = prompt("🔒 Masukkan PIN VIP:");
+      if (password && btoa(password) === "Nzg5MA==") {
+        currentPlaylistKey = "VIP_1";
+      } else if (password && btoa(password) === "MDAwMA==") {
+        currentPlaylistKey = "VIP_2";
+      } else {
+        alert("❌ PIN salah!");
+        e.target.value = currentPlaylistKey.startsWith("VIP_") ? "VIP" : currentPlaylistKey;
+        return;
+      }
+    } else {
+      currentPlaylistKey = targetKey;
+    }
+
+    currentTrackIndex = 0;
+    updateCloudButtonsVisibility();
+    filterActivePlaylist();
+  });
+
+  backupBtn.addEventListener("click", async () => {
+    const data = localStorage.getItem(STORAGE_KEY);
+    if (!data) { alert("Tidak ada data untuk di-backup!"); return; }
+    const blob = new Blob([data], { type: "application/json" });
+    const fileName = currentPlaylistKey === "VIP_2" ? "BoomPlayer_Backup_VIP2.json" : "BoomPlayer_Backup_VIP1.json";
+    const file = new File([blob], fileName, { type: "application/json" });
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      try { await navigator.share({ files: [file], title: "Backup Playlist", text: "File backup playlist" }); return; } catch (err) { if (err.name === "AbortError") return; }
+    }
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = fileName; a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  });
+
+  restoreInput.addEventListener("change", e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = event => {
+      try {
+        const parsed = JSON.parse(event.target.result);
+        if (typeof parsed !== "object") throw new Error("Invalid");
+        localStorage.setItem(STORAGE_KEY, event.target.result);
+        alert("✅ Restore berhasil! Memuat ulang...");
+        location.reload();
+      } catch (err) { alert("❌ File tidak valid!"); }
+    };
+    reader.readAsText(file);
+    restoreInput.value = "";
+  });
+
+  customArtFileInput.addEventListener("change", e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const activeList = playlists[currentPlaylistKey] || [];
+    if (activeList.length === 0) { alert("Pilih lagu dulu!"); customArtFileInput.value = ""; return; }
+    const reader = new FileReader();
+    reader.onload = event => {
+      activeList[currentTrackIndex].cover = event.target.result;
+      coverImg.src = event.target.result;
+      saveToStorage();
+      updatePlayerInfo(activeList[currentTrackIndex]);
+      renderPlaylistUI();
+      customArtFileInput.value = "";
+    };
+    reader.readAsDataURL(file);
+  });
+
+  function setupMediaSession() {
+    if (!("mediaSession" in navigator)) return;
+    try {
+      navigator.mediaSession.setActionHandler("play", async () => {
+        await triggerAudioContext();
+        await audio.play();
+        playBtn.innerText = "Pause";
+        navigator.mediaSession.playbackState = "playing";
+      });
+      navigator.mediaSession.setActionHandler("pause", () => {
+        audio.pause();
+        playBtn.innerText = "Play";
+        navigator.mediaSession.playbackState = "paused";
+      });
+      navigator.mediaSession.setActionHandler("nexttrack", () => {
+        const activeList = playlists[currentPlaylistKey] || [];
+        if (activeList.length > 0) playTrack(currentTrackIndex + 1);
+      });
+      navigator.mediaSession.setActionHandler("previoustrack", () => {
+        const activeList = playlists[currentPlaylistKey] || [];
+        if (activeList.length > 0) playTrack(currentTrackIndex - 1);
+      });
+    } catch (e) {}
+  }
+  setupMediaSession();
+
+  openLinkModal.addEventListener("click", () => { linkModal.style.display = "flex"; arcTitleInput.value = ""; arcUrlInput.value = ""; });
+  closeLinkModal.addEventListener("click", () => { linkModal.style.display = "none"; });
+
+  function parsePictureToUrl(picture) {
+    if (!picture) return defaultHeadphoneCover;
+    try {
+      const { data, format } = picture;
+      let mime = format || "image/jpeg";
+      if (!mime.startsWith("image/")) mime = "image/" + mime;
+      const blob = new Blob([new Uint8Array(data)], { type: mime });
+      return URL.createObjectURL(blob);
+    } catch (err) { return defaultHeadphoneCover; }
+  }
+
+  // AUTO-CLEANER: Membersihkan titik tiga (…) atau spasi tak sengaja saat link di-paste
+  saveLinkSong.addEventListener("click", () => {
+    const title = arcTitleInput.value.trim();
+    let url = arcUrlInput.value.trim();
+    
+    url = url.replace(/…/g, "").replace(/\s+/g, "");
+
+    if (!title || !url) { alert("Judul dan URL wajib diisi!"); return; }
+    const targetPlaylist = currentPlaylistKey.startsWith("VIP_") ? currentPlaylistKey : "VIP_1";
+    if (!playlists[targetPlaylist]) playlists[targetPlaylist] = [];
+    playlists[targetPlaylist].push({ id: Date.now() + Math.random(), title, artist: '"i B a a L   e Q e"', cover: defaultHeadphoneCover, url });
+    saveToStorage();
+    linkModal.style.display = "none";
+    filterActivePlaylist();
+    alert(`✅ Link berhasil disimpan ke ${targetPlaylist === "VIP_1" ? "Cloud 1" : "Cloud 2"}!`);
+  });
+
+  localFileInput.addEventListener("change", e => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    if (!playlists[currentPlaylistKey]) playlists[currentPlaylistKey] = [];
+    Array.from(files).forEach(file => {
+      const localBlobUrl = URL.createObjectURL(file);
+      window.jsmediatags.read(file, {
+        onSuccess: function(tag) {
+          const title = tag.tags.title || file.name.replace(/\.[^/.]+$/, "");
+          const coverUrl = parsePictureToUrl(tag.tags.picture);
+          playlists[currentPlaylistKey].push({ id: Date.now() + Math.random(), title, artist: '"i B a a L   e Q e"', cover: coverUrl, url: localBlobUrl });
+          renderPlaylistUI();
+          if (!audio.src) { currentTrackIndex = playlists[currentPlaylistKey].length - 1; playTrack(currentTrackIndex); }
+        },
+        onError: function() {
+          playlists[currentPlaylistKey].push({ id: Date.now() + Math.random(), title: file.name.replace(/\.[^/.]+$/, ""), artist: '"i B a a L   e Q e"', cover: defaultHeadphoneCover, url: localBlobUrl });
+          renderPlaylistUI();
+          if (!audio.src) { currentTrackIndex = playlists[currentPlaylistKey].length - 1; playTrack(currentTrackIndex); }
+        }
+      });
+    });
+    localFileInput.value = "";
+  });
+
+  function filterActivePlaylist() {
+    if (!playlists[currentPlaylistKey]) playlists[currentPlaylistKey] = [];
+    renderPlaylistUI();
+    const activeList = playlists[currentPlaylistKey];
+    if (activeList.length > 0 && !audio.src) { currentTrackIndex = 0; updatePlayerInfo(activeList[0]); }
+  }
+
+  function renderPlaylistUI() {
+    const list = document.getElementById("playlistList");
+    if (!list) return;
+    list.innerHTML = "";
+    const activeList = playlists[currentPlaylistKey] || [];
+    if (activeList.length === 0) {
+      list.innerHTML = '<div style="text-align:center;padding:10px;font-size:9px;opacity:.7;">Belum ada lagu di playlist ini.</div>';
+      return;
+    }
+    activeList.forEach((song, index) => {
+      const row = document.createElement("div");
+      row.className = `song-row ${index === currentTrackIndex ? "active" : ""}`;
+      const titleSpan = document.createElement("span");
+      titleSpan.className = "song-title-text";
+      titleSpan.innerText = `${index + 1}. ${song.title}`;
+      titleSpan.onclick = () => playTrack(index);
+      row.appendChild(titleSpan);
+
+      const deleteBtn = document.createElement("button");
+      deleteBtn.innerText = "❌";
+      deleteBtn.style.background = "transparent"; deleteBtn.style.border = "none"; deleteBtn.style.cursor = "pointer"; deleteBtn.style.fontSize = "10px"; deleteBtn.style.padding = "0 4px";
+      deleteBtn.onclick = e => {
+        e.stopPropagation();
+        if (confirm(`Hapus lagu "${song.title}"?`)) {
+          playlists[currentPlaylistKey].splice(index, 1);
+          if (currentTrackIndex >= playlists[currentPlaylistKey].length) {
+            currentTrackIndex = Math.max(0, playlists[currentPlaylistKey].length - 1);
+          }
+          saveToStorage(); renderPlaylistUI();
+        }
+      };
+      row.appendChild(deleteBtn);
+      list.appendChild(row);
+    });
+  }
+
+  async function playTrack(index) {
+    const activeList = playlists[currentPlaylistKey] || [];
+    if (activeList.length === 0) return;
+    currentTrackIndex = (index + activeList.length) % activeList.length;
+    const song = activeList[currentTrackIndex];
+    isChangingTrack = true;
+    playBtn.innerText = "⌛";
+
+    try { audio.pause(); } catch (e) {}
+    
+    updatePlayerInfo(song);
+    renderPlaylistUI();
+
+    try {
+      await triggerAudioContext();
+      audio.src = song.url;
+      audio.load();
+      await audio.play();
+      playBtn.innerText = "Pause";
+      if ("mediaSession" in navigator) {
+        navigator.mediaSession.playbackState = "playing";
+      }
+    } catch (err) {
+      console.log("Play error:", err);
+      playBtn.innerText = "Play";
+      alert("Gagal memutar audio. Pastikan link aktif.");
+    }
+    isChangingTrack = false;
+  }
+
+  function updatePlayerInfo(song) {
+    document.getElementById("title").innerText = song.title;
+    coverImg.src = song.cover || defaultHeadphoneCover;
+    if ("mediaSession" in navigator) {
+      try {
+        navigator.mediaSession.metadata = new MediaMetadata({
+          title: song.title, artist: "i B a a L e Q e", album: "iBaal Premium",
+          artwork: [{ src: song.cover || defaultHeadphoneCover, sizes: "512x512", type: "image/png" }]
+        });
+      } catch (e) {}
+    }
+  }
+
+  playBtn.addEventListener("click", async () => {
+    const activeList = playlists[currentPlaylistKey] || [];
+    if (activeList.length === 0) { alert("Playlist kosong!"); return; }
+    try {
+      await triggerAudioContext();
+      if (audio.paused) {
+        if (!audio.src) {
+          await playTrack(currentTrackIndex);
+        } else { 
+          await audio.play(); 
+          playBtn.innerText = "Pause"; 
+        }
+        if ("mediaSession" in navigator) navigator.mediaSession.playbackState = "playing";
+      } else {
+        audio.pause(); 
+        playBtn.innerText = "Play";
+        if ("mediaSession" in navigator) navigator.mediaSession.playbackState = "paused";
+      }
+    } catch (err) { 
+      playBtn.innerText = "Play"; 
+    }
+  });
+
+  document.getElementById("nextBtn").addEventListener("click", () => {
+    const activeList = playlists[currentPlaylistKey] || [];
+    if (activeList.length > 0) playTrack(currentTrackIndex + 1);
+  });
+
+  document.getElementById("prevBtn").addEventListener("click", () => {
+    const activeList = playlists[currentPlaylistKey] || [];
+    if (activeList.length > 0) playTrack(currentTrackIndex - 1);
+  });
+
+  audio.addEventListener("ended", () => {
+    const activeList = playlists[currentPlaylistKey] || [];
+    if (activeList.length > 0) playTrack(currentTrackIndex + 1);
+  });
+
+  audio.addEventListener("play", () => {
+    playBtn.innerText = "Pause";
+    if ("mediaSession" in navigator) navigator.mediaSession.playbackState = "playing";
+  });
+
+  audio.addEventListener("pause", () => {
+    if (!isChangingTrack) playBtn.innerText = "Play";
+    if ("mediaSession" in navigator) navigator.mediaSession.playbackState = "paused";
+  });
+
+  audio.addEventListener("timeupdate", () => {
+    if (audio.duration && Number.isFinite(audio.duration)) {
+      progressInput.value = (audio.currentTime / audio.duration) * 100;
+      currentTimeSpan.innerText = formatTime(audio.currentTime);
+      durationSpan.innerText = formatTime(audio.duration);
+    }
+  });
+
+  progressInput.addEventListener("input", e => {
+    if (audio.duration && Number.isFinite(audio.duration)) {
+      audio.currentTime = (Number(e.target.value) / 100) * audio.duration;
+    }
+  });
+
+  function formatTime(seconds) {
+    if (!Number.isFinite(seconds)) return "0:00";
+    const minutes = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${minutes}:${secs < 10 ? "0" : ""}${secs}`;
+  }
+
+  updateCloudButtonsVisibility();
+  filterActivePlaylist();
+});
+</script>
+</body>
+</html>
